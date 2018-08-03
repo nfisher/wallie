@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DMP Prioritisation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+    <style>
+        .card, .modal-card {
+            border-radius: 0.3rem;
+            margin-bottom: 0.75rem;
+        }
+        .card-footer .column {
+            padding-top:0;
+            padding-bottom:0;
+        }
+        .card-content {
+            padding: 0.75rem;
+            min-height:6em;
+        }
+        .collapsable {
+            min-height:100%;
+        }
+        .collapsable .card:not(:first-child) {
+            display:none;
+        }
+        .collapsable:hover .card:not(:first-child) {
+            display:block;
+        }
+    </style>
+</head>
+<body>
+<div class="modal" id="modal">
+    <div class="modal-background" id="background"></div>
+    <div class="modal-card">
+        <section class="modal-card-body has-background-light">
+            <form method="post">
+                <p id="modalTitle" class="is-pulled-right"></p>
+                <input  name="key" type="hidden" id="modalKey"/>
+
+                <div class="field">
+                    <label class="label" for="modalSummary">Summary</label>
+                    <div class="control">
+                        <input name="summary" type="text" class="input" id="modalSummary"/>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label" for="modalDescription">Description</label>
+                    <div class="control">
+                        <textarea name="description" class="textarea" rows="16" id="modalDescription"></textarea>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    <div class="column">
+                        <div class="control">
+                        <button name="size" class="button is-fullwidth" type="submit" value="S">S</button>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="control">
+                        <button name="size" class="button is-fullwidth" type="submit" value="M">M</button>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="control">
+                        <button name="size" class="button is-fullwidth" type="submit" value="L">L</button>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="control">
+                        <button name="size" class="button is-fullwidth" type="submit" value="U">?</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+<div class="container is-fullhd" id="wall">
+    <div class="columns">
+        <div class="column has-background-light">
+            <h2 class="title is-5 has-text-centered">Requires estimation</h2>
+            {{ range $index, $el := .Issues.Other }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.Small }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
+            <div class="collapsable">
+        {{ range $index, $el := .Issues.Medium }}
+            {{- template "sized-card" $el -}}
+        {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
+            <div class="collapsable">
+        {{ range $index, $el := .Issues.Large }}
+            {{- template "sized-card" $el -}}
+        {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.Unknown }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    "use strict";
+
+    let modal = document.getElementById('modal');
+    let modalKey = document.getElementById('modalKey');
+    let modalTitle = document.getElementById('modalTitle');
+    let modalDescription = document.getElementById('modalDescription');
+    let modalSummary = document.getElementById('modalSummary');
+    let modalButtons = modal.getElementsByClassName('button');
+
+    let bg = document.getElementById('background');
+    let wall = document.getElementById('wall');
+    let cards = wall.getElementsByClassName('card');
+
+    function anchor(text, href) {
+        let anchorNode = document.createElement('a');
+        let textNode = document.createTextNode(text);
+        anchorNode.appendChild(textNode);
+        anchorNode.href = href;
+        return anchorNode;
+    }
+
+    function greySpan(text) {
+        let span = document.createElement('span');
+        let textNode = document.createTextNode(text);
+        span.className = 'has-text-grey';
+        span.appendChild(textNode);
+        return span;
+    }
+
+    function removeAll(node) {
+        while (node.firstChild) {
+            node.removeChild(node.firstChild)
+        }
+    }
+
+    function showModal(el) {
+        return function() {
+            let summary = el.dataset.summary;
+            let key = el.dataset.key;
+            let description = el.dataset.description;
+            let priority = el.dataset.priority;
+            let ticket = anchor(key, "{{- .JiraBase -}}/browse/" + key);
+            let reporter = greySpan(el.dataset.reporter + " / ");
+
+            removeAll(modalTitle);
+
+            // set labels
+            modalTitle.appendChild(reporter);
+            modalTitle.appendChild(ticket);
+
+            // set form fields
+            modalKey.value = key;
+            modalSummary.value = summary;
+            modalDescription.value = description;
+
+            // reset all estimation buttons to grey
+            for (let i = 0; i < modalButtons.length; i++) {
+                modalButtons[i].className = 'button is-fullwidth';
+            }
+
+            // highlight current priority button
+            switch (priority) {
+                case '1':
+                    modalButtons[0].className = 'is-primary button is-fullwidth';
+                    break;
+                case '2':
+                    modalButtons[1].className = 'is-primary button is-fullwidth';
+                    break;
+                case '3':
+                    modalButtons[2].className = 'is-primary button is-fullwidth';
+                    break;
+                case '-1':
+                    modalButtons[3].className = 'is-primary button is-fullwidth';
+                    break;
+            }
+            modal.className = 'modal is-active';
+        };
+    }
+
+    bg.addEventListener('click', function() { modal.className = 'modal'; });
+
+    for (let i = 0; i < cards.length; i++) {
+        cards[i].addEventListener('click', showModal(cards[i]));
+    }
+</script>
+</body>
+</html>
+{{ define "sized-card" }}
+<div class="card" data-summary="{{ .Fields.Summary }}" data-key="{{ .Key }}" data-description="{{ .Fields.Description }}" {{ if .Fields.StoryPoints }}data-priority="{{ .Fields.StoryPoints }}"{{ end }} data-reporter="{{ .Fields.Reporter.DisplayName }}">
+    <div class="card-content">
+        <div class="content">
+        {{ .Fields.Summary }} <span class="has-text-grey-light">{{ .Key }}</span>
+        </div>
+    </div>
+</div>
+{{ end }}

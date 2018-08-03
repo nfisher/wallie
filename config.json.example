@@ -1,0 +1,7 @@
+{
+  "username": "user@example.net",
+  "password": "secret",
+  "jiraBase": "http://jira.com",
+  "basicUsername": "user",
+  "basicPassword": "secret"
+}
