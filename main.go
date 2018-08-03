@@ -268,7 +268,7 @@ func PrintBacklog(config Config, projectID string) {
 	}
 
 	for _, issue := range issues {
-		fmt.Printf("[%-12s] %s - (%v)\n", issue.Key, issue.Fields.Summary, issue.Fields.StoryPoints)
+		fmt.Printf("[%-12s] %s (%v)\n", issue.Key, issue.Fields.Summary, issue.Fields.StoryPoints)
 	}
 }
 
