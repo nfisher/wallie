@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 )
 
 func main() {
@@ -19,9 +20,12 @@ func main() {
 	var printBacklog bool
 	var configPath string
 	var addr string
+	var projectID string
+
 	flag.BoolVar(&printBacklog, "backlog", false, "print backlog and exit")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
 	flag.StringVar(&addr, "listen", ":3000", "listening address")
+	flag.StringVar(&projectID, "project", "dmp", "project ID to query on the command-line")
 	flag.Parse()
 
 	config, err := readConfig(configPath)
@@ -30,11 +34,11 @@ func main() {
 	}
 
 	if printBacklog {
-		PrintBacklog(config)
+		PrintBacklog(config, projectID)
 		return
 	}
 
-	http.HandleFunc("/projects/dmp", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
+	http.HandleFunc("/projects/", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
 
 	log.Printf("binding to %s", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
@@ -64,8 +68,19 @@ func readConfig(path string) (Config, error) {
 	return config, nil
 }
 
+
+var validProjectID = regexp.MustCompile(`^\\w\+$`)
+
 func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
+		urlParts := strings.Split(req.URL.Path, "/")
+		projectID := urlParts[len(urlParts) - 1]
+
+		if validProjectID.MatchString(projectID) {
+			http.Error(w, "Invalid project ID", http.StatusNotFound)
+			return
+		}
+
 		//var tpl = template.Must(template.ParseGlob("tpl/*.html"))
 		if req.Method == http.MethodPost {
 			err := req.ParseForm()
@@ -90,7 +105,7 @@ func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request
 			}
 		}
 
-		issues, err := ListIssues(config)
+		issues, err := ListIssues(config, projectID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -171,11 +186,11 @@ type UpdateIssueRequest struct {
 	Fields IssueFields `json:"fields"`
 }
 
-func ListIssues(config Config) (Issues, error) {
+func ListIssues(config Config, projectID string) (Issues, error) {
 	client := http.Client{}
 
 	searchRequest := SearchRequest{
-		JQL:        `type = Story AND project = "Data Management Platform" AND status not in (Done, Closed) ORDER BY rank`,
+		JQL:        fmt.Sprintf(`type = Story AND project = "%s" AND status not in (Done, Closed) ORDER BY rank`, projectID),
 		MaxResults: 100,
 		Fields: []string{
 			"summary",
@@ -246,14 +261,14 @@ func tee2estimate(size string) float64 {
 	return 0.0
 }
 
-func PrintBacklog(config Config) {
-	issues, err := ListIssues(config)
+func PrintBacklog(config Config, projectID string) {
+	issues, err := ListIssues(config, projectID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, issue := range issues {
-		fmt.Printf("[%s] - %s - (%v)\n", issue.Key, issue.Fields.Summary, issue.Fields.StoryPoints)
+		fmt.Printf("[%-12s] %s - (%v)\n", issue.Key, issue.Fields.Summary, issue.Fields.StoryPoints)
 	}
 }
 
