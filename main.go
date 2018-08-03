@@ -318,7 +318,7 @@ type IssueFields struct {
 	Summary     string   `json:"summary"`
 	Description string   `json:"description"`
 	StoryPoints float64  `json:"customfield_10006,omitempty"`
-	Reporter    Reporter `json:"reporter,omitempty"`
+	Reporter    *Reporter `json:"reporter,omitempty"`
 }
 
 type Reporter struct {
