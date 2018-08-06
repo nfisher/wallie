@@ -46,10 +46,16 @@ func main() {
 	})
 
 	http.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintln(w, "CFDs")
+		var project = req.URL.Query().Get("project")
+		if !validProjectID.MatchString(project) {
+			http.Error(w, "unknown project ID", http.StatusNotFound)
+			return
+		}
+
+		fmt.Fprintln(w, project)
 	})
 
-	http.HandleFunc("/estimations", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
+	http.HandleFunc("/estimation", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
 
 	log.Printf("binding to %s", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
@@ -80,7 +86,7 @@ func readConfig(path string) (Config, error) {
 	return config, nil
 }
 
-var validProjectID = regexp.MustCompile(`^\\w\+$`)
+var validProjectID = regexp.MustCompile(`^\w+$`)
 
 func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -88,7 +94,7 @@ func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request
 
 		projectID := req.URL.Query().Get("project")
 
-		if validProjectID.MatchString(projectID) {
+		if !validProjectID.MatchString(projectID) {
 			http.Error(w, "Invalid project ID", http.StatusNotFound)
 			return
 		}
