@@ -1,6 +1,6 @@
-{{ define "estimation_board" }}
+{{ define "estimation_board" -}}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -101,66 +101,52 @@
         </section>
     </div>
 </div>
-<!--
-<nav class="navbar" role="navigation" aria-label="dropdown navigation">
-    <div class="navbar-item has-dropdown is-hoverable">
-        <a class="navbar-link">
-            Views
-        </a>
 
-        <div class="navbar-dropdown">
-            <a class="navbar-item" href="/estimations">Sizing</a>
-            <a class="navbar-item" href="/cfds">Cumulative Flow</a>
+<section class="section estimation">
+    <div class="columns" id="wall">
+        <div class="column has-background-light">
+            <h2 class="title is-5 has-text-centered">Requires estimation</h2>
+            {{ range $index, $el := .Issues.Other }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.Small }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
+            <div class="collapsable">
+        {{ range $index, $el := .Issues.Medium }}
+            {{- template "sized-card" $el -}}
+        {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
+            <div class="collapsable">
+        {{ range $index, $el := .Issues.Large }}
+            {{- template "sized-card" $el -}}
+        {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.Unknown }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
         </div>
     </div>
-</nav>
--->
-<section class="section estimation" id="wall">
-
-        <div class="columns">
-            <div class="column has-background-light">
-                <h2 class="title is-5 has-text-centered">Requires estimation</h2>
-                {{ range $index, $el := .Issues.Other }}
-                    {{- template "sized-card" $el -}}
-                {{ end }}
-            </div>
-
-            <div class="column">
-                <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
-                <div class="collapsable">
-                {{ range $index, $el := .Issues.Small }}
-                    {{- template "sized-card" $el -}}
-                {{ end }}
-                </div>
-            </div>
-
-            <div class="column">
-                <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
-                <div class="collapsable">
-            {{ range $index, $el := .Issues.Medium }}
-                {{- template "sized-card" $el -}}
-            {{ end }}
-                </div>
-            </div>
-
-            <div class="column">
-                <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
-                <div class="collapsable">
-            {{ range $index, $el := .Issues.Large }}
-                {{- template "sized-card" $el -}}
-            {{ end }}
-                </div>
-            </div>
-
-            <div class="column">
-                <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
-                <div class="collapsable">
-                {{ range $index, $el := .Issues.Unknown }}
-                    {{- template "sized-card" $el -}}
-                {{ end }}
-                </div>
-            </div>
-        </div>
 </section>
 <script>
     "use strict";
@@ -171,10 +157,6 @@
     let modalDescription = document.getElementById('modalDescription');
     let modalSummary = document.getElementById('modalSummary');
     let modalButtons = modal.getElementsByClassName('button');
-
-    let bg = document.getElementById('background');
-    let wall = document.getElementById('wall');
-    let cards = wall.getElementsByClassName('card');
 
     function anchor(text, href) {
         let anchorNode = document.createElement('a');
@@ -242,15 +224,23 @@
         };
     }
 
-    bg.addEventListener('click', function() { modal.className = 'modal'; });
+    function main() {
+        let bg = document.getElementById('background');
+        let wall = document.getElementById('wall');
+        let cards = wall.getElementsByClassName('card');
 
-    for (let i = 0; i < cards.length; i++) {
-        cards[i].addEventListener('click', showModal(cards[i]));
+        bg.addEventListener('click', function() { modal.className = 'modal'; });
+
+        for (let i = 0; i < cards.length; i++) {
+            cards[i].addEventListener('click', showModal(cards[i]));
+        }
     }
+
+    main();
 </script>
 </body>
 </html>
-{{ end }}
+{{- end }}
 
 {{ define "sized-card" }}
 <div class="card" data-summary="{{ .Fields.Summary }}" data-key="{{ .Key }}" data-description="{{ .Fields.Description }}" {{ if .Fields.StoryPoints }}data-priority="{{ .Fields.StoryPoints }}"{{ end }} data-reporter="{{ .Fields.Reporter.DisplayName }}">
