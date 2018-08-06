@@ -1,3 +1,4 @@
+{{ define "estimation_board" }}
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,13 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Estimation Board</title>
 
-    <link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans|Inconsolata" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
     <script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
     <style>
-        body, button, input, select, textarea {
+        body, button, input, select {
             font-family: 'Open Sans', sans-serif;
+        }
+        textarea {
+            font-family: 'Inconsolata', monospace;
+        }
+        #wall h2.title {
+            padding-top:1.25rem;
         }
         .title {
             font-family: 'Domine', serif;
@@ -36,6 +43,9 @@
         }
         .collapsable:hover .card:not(:first-child) {
             display:block;
+        }
+        .estimation {
+            padding:1px 0.75rem;
         }
     </style>
 </head>
@@ -91,53 +101,67 @@
         </section>
     </div>
 </div>
+<!--
+<nav class="navbar" role="navigation" aria-label="dropdown navigation">
+    <div class="navbar-item has-dropdown is-hoverable">
+        <a class="navbar-link">
+            Views
+        </a>
 
-<div class="container is-fullhd" id="wall">
-    <div class="columns">
-        <div class="column has-background-light">
-            <h2 class="title is-5 has-text-centered">Requires estimation</h2>
-            {{ range $index, $el := .Issues.Other }}
-                {{- template "sized-card" $el -}}
-            {{ end }}
-        </div>
-
-        <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
-            <div class="collapsable">
-            {{ range $index, $el := .Issues.Small }}
-                {{- template "sized-card" $el -}}
-            {{ end }}
-            </div>
-        </div>
-
-        <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
-            <div class="collapsable">
-        {{ range $index, $el := .Issues.Medium }}
-            {{- template "sized-card" $el -}}
-        {{ end }}
-            </div>
-        </div>
-
-        <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
-            <div class="collapsable">
-        {{ range $index, $el := .Issues.Large }}
-            {{- template "sized-card" $el -}}
-        {{ end }}
-            </div>
-        </div>
-
-        <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
-            <div class="collapsable">
-            {{ range $index, $el := .Issues.Unknown }}
-                {{- template "sized-card" $el -}}
-            {{ end }}
-            </div>
+        <div class="navbar-dropdown">
+            <a class="navbar-item" href="/estimations">Sizing</a>
+            <a class="navbar-item" href="/cfds">Cumulative Flow</a>
         </div>
     </div>
-</div>
+</nav>
+-->
+<section class="section estimation" id="wall">
+
+        <div class="columns">
+            <div class="column has-background-light">
+                <h2 class="title is-5 has-text-centered">Requires estimation</h2>
+                {{ range $index, $el := .Issues.Other }}
+                    {{- template "sized-card" $el -}}
+                {{ end }}
+            </div>
+
+            <div class="column">
+                <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
+                <div class="collapsable">
+                {{ range $index, $el := .Issues.Small }}
+                    {{- template "sized-card" $el -}}
+                {{ end }}
+                </div>
+            </div>
+
+            <div class="column">
+                <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
+                <div class="collapsable">
+            {{ range $index, $el := .Issues.Medium }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+                </div>
+            </div>
+
+            <div class="column">
+                <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
+                <div class="collapsable">
+            {{ range $index, $el := .Issues.Large }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+                </div>
+            </div>
+
+            <div class="column">
+                <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
+                <div class="collapsable">
+                {{ range $index, $el := .Issues.Unknown }}
+                    {{- template "sized-card" $el -}}
+                {{ end }}
+                </div>
+            </div>
+        </div>
+</section>
 <script>
     "use strict";
 
@@ -226,6 +250,8 @@
 </script>
 </body>
 </html>
+{{ end }}
+
 {{ define "sized-card" }}
 <div class="card" data-summary="{{ .Fields.Summary }}" data-key="{{ .Key }}" data-description="{{ .Fields.Description }}" {{ if .Fields.StoryPoints }}data-priority="{{ .Fields.StoryPoints }}"{{ end }} data-reporter="{{ .Fields.Reporter.DisplayName }}">
     <div class="card-content">

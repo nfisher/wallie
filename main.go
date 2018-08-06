@@ -12,8 +12,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"strings"
-)
+	)
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.LUTC | log.Lshortfile)
@@ -21,8 +20,11 @@ func main() {
 	var configPath string
 	var addr string
 	var projectID string
+	var alwaysReload bool
+
 
 	flag.BoolVar(&printBacklog, "backlog", false, "print backlog and exit")
+	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
 	flag.StringVar(&addr, "listen", ":3000", "listening address")
 	flag.StringVar(&projectID, "project", "dmp", "project ID to query on the command-line")
@@ -32,24 +34,34 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	config.AlwaysReloadHTML = alwaysReload
 
 	if printBacklog {
 		PrintBacklog(config, projectID)
 		return
 	}
 
-	http.HandleFunc("/projects/", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
+	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintln(w, "projects")
+	})
+
+	http.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintln(w, "CFDs")
+	})
+
+	http.HandleFunc("/estimations", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
 
 	log.Printf("binding to %s", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 type Config struct {
-	JiraBase string
-	Username string `json:"username"`
-	Password string `json:"password"`
-	BasicUsername string `json:"basicUsername"`
-	BasicPassword string `json:"basicPassword"`
+	JiraBase         string
+	Username         string `json:"username"`
+	Password         string `json:"password"`
+	BasicUsername    string `json:"basicUsername"`
+	BasicPassword    string `json:"basicPassword"`
+	AlwaysReloadHTML bool	`json:"-"`
 }
 
 func readConfig(path string) (Config, error) {
@@ -68,20 +80,23 @@ func readConfig(path string) (Config, error) {
 	return config, nil
 }
 
-
 var validProjectID = regexp.MustCompile(`^\\w\+$`)
 
 func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		urlParts := strings.Split(req.URL.Path, "/")
-		projectID := urlParts[len(urlParts) - 1]
+		var tpl = tpl
+
+		projectID := req.URL.Query().Get("project")
 
 		if validProjectID.MatchString(projectID) {
 			http.Error(w, "Invalid project ID", http.StatusNotFound)
 			return
 		}
 
-		//var tpl = template.Must(template.ParseGlob("tpl/*.html"))
+		if config.AlwaysReloadHTML {
+			tpl = template.Must(template.ParseGlob("tpl/*.html"))
+		}
+
 		if req.Method == http.MethodPost {
 			err := req.ParseForm()
 			if err != nil {
@@ -111,7 +126,7 @@ func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request
 			return
 		}
 
-		err = tpl.Execute(w, EstimationPage{JiraBase:config.JiraBase, Issues: issues})
+		err = tpl.ExecuteTemplate(w, "estimation_board", EstimationPage{JiraBase: config.JiraBase, Issues: issues})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -121,7 +136,7 @@ func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request
 
 type EstimationPage struct {
 	JiraBase string
-	Issues Issues
+	Issues   Issues
 }
 
 func BasicAuth(handler http.HandlerFunc, username, password, realm string) http.HandlerFunc {
@@ -315,9 +330,9 @@ type Issue struct {
 }
 
 type IssueFields struct {
-	Summary     string   `json:"summary"`
-	Description string   `json:"description"`
-	StoryPoints float64  `json:"customfield_10006,omitempty"`
+	Summary     string    `json:"summary"`
+	Description string    `json:"description"`
+	StoryPoints float64   `json:"customfield_10006,omitempty"`
 	Reporter    *Reporter `json:"reporter,omitempty"`
 }
 
