@@ -10,13 +10,14 @@ wallie: *.go
 
 .PHONY: docker
 docker: wallie.amd64
-	docker build --file Dockerfile . -t wallie:${GIT_SHA}
+	docker build --file Dockerfile . \
+		-t ${DOCKER_ID_USER}/wallie:${GIT_SHA} \
+		-t ${DOCKER_ID_USER}/wallie:latest
 
 .PHONY: publish
 publish: docker
-	docker tag wallie:${GIT_SHA} ${DOCKER_ID_USER}/wallie:${GIT_SHA}
-	docker tag wallie:${GIT_SHA} ${DOCKER_ID_USER}/wallie:latest
-	docker push ${DOCKER_ID_USER}/wallie
+	docker push ${DOCKER_ID_USER}/wallie:${GIT_SHA}
+	docker push ${DOCKER_ID_USER}/wallie:latest
 
 wallie.amd64: *.go
 	CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
