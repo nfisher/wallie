@@ -12,16 +12,24 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	)
+)
+
+var (
+	Version = ""
+	Origin  = ""
+)
 
 func main() {
-	log.SetFlags(log.LstdFlags | log.LUTC | log.Lshortfile)
 	var printBacklog bool
 	var configPath string
 	var addr string
 	var projectID string
 	var alwaysReload bool
 
+	log.SetFlags(log.LstdFlags | log.LUTC | log.Lshortfile)
+	log.Println("starting wallie")
+	log.Println("version:", Version)
+	log.Println("source:", Origin)
 
 	flag.BoolVar(&printBacklog, "backlog", false, "print backlog and exit")
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
@@ -67,7 +75,7 @@ type Config struct {
 	Password         string `json:"password"`
 	BasicUsername    string `json:"basicUsername"`
 	BasicPassword    string `json:"basicPassword"`
-	AlwaysReloadHTML bool	`json:"-"`
+	AlwaysReloadHTML bool   `json:"-"`
 }
 
 func readConfig(path string) (Config, error) {
