@@ -53,6 +53,14 @@ func main() {
 		fmt.Fprintln(w, "projects")
 	})
 
+	http.HandleFunc("/login", func(w http.ResponseWriter, req *http.Request) {
+		err := tpl.ExecuteTemplate(w, "login", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+
 	http.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
 		var project = req.URL.Query().Get("project")
 		if !validProjectID.MatchString(project) {

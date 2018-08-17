@@ -1,53 +1,51 @@
+{{ define "login" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{{ template "head" "Wallie Login" }}
+</head>
+<body>
+    <div class="modal is-active">
+        <div class="modal-background"></div>
+
+        <div class="modal-card">
+            <section class="modal-card-body has-background-light">
+                <h2 class="title">Wallie Login</h2>
+                <div class="field">
+                    <p class="control has-icons-left is-expanded">
+                        <input class="input" type="email" placeholder="Email">
+                        <span class="icon is-small is-left">
+                        <i class="fas fa-envelope"></i>
+                        </span>
+                    </p>
+                </div>
+                <div class="field">
+                    <p class="control has-icons-left is-expanded">
+                        <input class="input" type="password" placeholder="Password">
+                        <span class="icon is-small is-left">
+                        <i class="fas fa-lock"></i>
+                        </span>
+                    </p>
+                </div>
+                <div class="field">
+                    <p class="control">
+                        <button class="button is-success">
+                            Login
+                        </button>
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
+{{- end }}
+
 {{ define "estimation_board" -}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Estimation Board</title>
-
-    <link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans|Inconsolata" rel="stylesheet">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
-    <script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
-    <style>
-        body, button, input, select {
-            font-family: 'Open Sans', sans-serif;
-        }
-        textarea {
-            font-family: 'Inconsolata', monospace;
-        }
-        #wall h2.title {
-            padding-top:1.25rem;
-        }
-        .title {
-            font-family: 'Domine', serif;
-        }
-        .card, .modal-card {
-            border-radius: 0.3rem;
-            margin-bottom: 0.75rem;
-        }
-        .card-footer .column {
-            padding-top:0;
-            padding-bottom:0;
-        }
-        .card-content {
-            padding: 0.5rem 0.75rem;
-            min-height:6em;
-        }
-        .collapsable {
-            min-height:100%;
-        }
-        .collapsable .card:not(:first-child) {
-            display:none;
-        }
-        .collapsable:hover .card:not(:first-child) {
-            display:block;
-        }
-        .estimation {
-            padding:1px 0.75rem;
-        }
-    </style>
+    {{ template "head" "Estimation Board" }}
 </head>
 <body>
 <div class="modal" id="modal">
@@ -241,6 +239,55 @@
 </body>
 </html>
 {{- end }}
+
+{{ define "head" }}
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ . }}</title>
+
+<link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans|Inconsolata" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
+<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+<style>
+    body, button, input, select {
+        font-family: 'Open Sans', sans-serif;
+    }
+    textarea {
+        font-family: 'Inconsolata', monospace;
+    }
+    #wall h2.title {
+        padding-top:1.25rem;
+    }
+    .title {
+        font-family: 'Domine', serif;
+    }
+    .card, .modal-card {
+        border-radius: 0.3rem;
+        margin-bottom: 0.75rem;
+    }
+    .card-footer .column {
+        padding-top:0;
+        padding-bottom:0;
+    }
+    .card-content {
+        padding: 0.5rem 0.75rem;
+        min-height:6em;
+    }
+    .collapsable {
+        min-height:100%;
+    }
+    .collapsable .card:not(:first-child) {
+        display:none;
+    }
+    .collapsable:hover .card:not(:first-child) {
+        display:block;
+    }
+    .estimation {
+        padding:1px 0.75rem;
+    }
+</style>
+{{ end }}
 
 {{ define "sized-card" }}
 <div class="card" data-summary="{{ .Fields.Summary }}" data-key="{{ .Key }}" data-description="{{ .Fields.Description }}" {{ if .Fields.StoryPoints }}data-priority="{{ .Fields.StoryPoints }}"{{ end }} data-reporter="{{ .Fields.Reporter.DisplayName }}">
