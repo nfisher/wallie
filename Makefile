@@ -6,9 +6,6 @@ SRC = *.go tpl/*.html
 .PHONY: all
 all: docker
 
-wallie: $(SRC)
-	go build -v -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}"
-
 .PHONY: docker
 docker: wallie.amd64
 	docker build --file Dockerfile . \
@@ -20,8 +17,14 @@ publish: docker
 	docker push ${DOCKER_ID_USER}/wallie:${GIT_SHA}
 	docker push ${DOCKER_ID_USER}/wallie:latest
 
+.PHONY: run
+run: wallie
+	./wallie -listen :8000
+
 wallie.amd64: $(SRC)
 	CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
 	 -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN} -extldflags -static" \
 	 -installsuffix cgo -o wallie.amd64 .
 
+wallie: $(SRC)
+	go build -v -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}"

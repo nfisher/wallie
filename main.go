@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/subtle"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -12,6 +11,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
+	"io"
 )
 
 var (
@@ -20,7 +21,6 @@ var (
 )
 
 func main() {
-	var printBacklog bool
 	var configPath string
 	var addr string
 	var projectID string
@@ -31,7 +31,6 @@ func main() {
 	log.Println("version:", Version)
 	log.Println("source:", Origin)
 
-	flag.BoolVar(&printBacklog, "backlog", false, "print backlog and exit")
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
 	flag.StringVar(&addr, "listen", ":3000", "listening address")
@@ -44,24 +43,11 @@ func main() {
 	}
 	config.AlwaysReloadHTML = alwaysReload
 
-	if printBacklog {
-		PrintBacklog(config, projectID)
-		return
-	}
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintln(w, "projects")
-	})
+	mux.HandleFunc("/login", Login(config))
 
-	http.HandleFunc("/login", func(w http.ResponseWriter, req *http.Request) {
-		err := tpl.ExecuteTemplate(w, "login", nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	})
-
-	http.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
 		var project = req.URL.Query().Get("project")
 		if !validProjectID.MatchString(project) {
 			http.Error(w, "unknown project ID", http.StatusNotFound)
@@ -71,18 +57,143 @@ func main() {
 		fmt.Fprintln(w, project)
 	})
 
-	http.HandleFunc("/estimation", BasicAuth(ProjectHandler(config), config.BasicUsername, config.BasicPassword, "Authentication Required"))
+	mux.HandleFunc("/estimation", EstimationHandler(config))
 
 	log.Printf("binding to %s", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(addr, LogRequests(RequireLogin(mux, config))))
+}
+
+type LoginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func RequireLogin(h http.Handler, config Config) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if config.LoginPath == req.URL.Path {
+			h.ServeHTTP(w, req)
+			return
+		}
+
+		_, err := req.Cookie(config.SessionName)
+		if err != nil {
+			// override method so that it forces form rendering
+			req.Method = http.MethodGet
+			Login(config)(w, req)
+			return
+		}
+
+		h.ServeHTTP(w, req)
+	})
+}
+
+func Login(config Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost {
+			err := req.ParseForm()
+			if err != nil {
+				http.Error(w, "unable to parse form values", http.StatusBadRequest)
+				return
+			}
+
+			username := req.FormValue("email")
+			password := req.FormValue("password")
+
+			loginRequest := LoginRequest{
+				Username: username,
+				Password: password,
+			}
+
+			b, err := json.Marshal(&loginRequest)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/rest/auth/1/session", config.JiraBase), bytes.NewBuffer(b))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			req.Header.Add("Content-Type", "application/json")
+
+			resp, err := client.Do(req)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			defer resp.Body.Close()
+
+			io.Copy(os.Stdout, resp.Body)
+
+			for _, c := range resp.Cookies() {
+				http.SetCookie(w, c)
+			}
+
+			issues, err := ListIssues(config, "dmp", resp.Cookies())
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+
+			fmt.Fprintf(w, "%#v", issues)
+			return
+		}
+
+		err := tpl.ExecuteTemplate(w, "login", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+func LogRequests(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		wr := &ResponseWriter{ResponseWriter: w}
+		start := time.Now()
+		h.ServeHTTP(wr, req)
+		log.Printf(`%v %s %s - %v - %v - %vB`, wr.Status(), req.Method, req.URL.Path, req.RemoteAddr, time.Now().Sub(start), wr.Bytes())
+	})
+}
+
+type ResponseWriter struct {
+	http.ResponseWriter
+	bytes       int
+	status      int
+	wroteHeader bool
+}
+
+func (w *ResponseWriter) Status() int {
+	return w.status
+}
+
+func (w *ResponseWriter) Bytes() int {
+	return w.bytes
+}
+
+func (w *ResponseWriter) Write(p []byte) (n int, err error) {
+	if !w.wroteHeader {
+		w.WriteHeader(http.StatusOK)
+	}
+	w.bytes += len(p)
+
+	return w.ResponseWriter.Write(p)
+}
+
+func (w *ResponseWriter) WriteHeader(code int) {
+	w.ResponseWriter.WriteHeader(code)
+	// Check after in case there's error handling in the wrapped ResponseWriter.
+	if w.wroteHeader {
+		return
+	}
+	w.status = code
+	w.wroteHeader = true
 }
 
 type Config struct {
 	JiraBase         string
-	Username         string `json:"username"`
-	Password         string `json:"password"`
-	BasicUsername    string `json:"basicUsername"`
-	BasicPassword    string `json:"basicPassword"`
+	LoginPath 		 string
+	SessionName      string
 	AlwaysReloadHTML bool   `json:"-"`
 }
 
@@ -104,7 +215,7 @@ func readConfig(path string) (Config, error) {
 
 var validProjectID = regexp.MustCompile(`^\w+$`)
 
-func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
+func EstimationHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var tpl = tpl
 
@@ -135,14 +246,14 @@ func ProjectHandler(config Config) func(w http.ResponseWriter, req *http.Request
 			description := req.FormValue("description")
 			estimate := tee2estimate(req.FormValue("size"))
 
-			err = UpdateIssue(config, key, summary, description, estimate)
+			err = UpdateIssue(config, key, summary, description, estimate, req.Cookies())
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		}
 
-		issues, err := ListIssues(config, projectID)
+		issues, err := ListIssues(config, projectID, req.Cookies())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -161,26 +272,11 @@ type EstimationPage struct {
 	Issues   Issues
 }
 
-func BasicAuth(handler http.HandlerFunc, username, password, realm string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		user, pass, ok := r.BasicAuth()
-
-		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
-			w.WriteHeader(401)
-			w.Write([]byte("Unauthorised.\n"))
-			return
-		}
-
-		handler(w, r)
-	}
-}
-
 var tpl = template.Must(template.ParseGlob("tpl/*.html"))
 
 var client = http.Client{}
 
-func UpdateIssue(config Config, key, summary, description string, estimate float64) error {
+func UpdateIssue(config Config, key, summary, description string, estimate float64, cookies []*http.Cookie) error {
 	updateRequest := UpdateIssueRequest{
 		Fields: IssueFields{
 			Summary:     summary,
@@ -199,7 +295,9 @@ func UpdateIssue(config Config, key, summary, description string, estimate float
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth(config.Username, config.Password)
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -223,7 +321,7 @@ type UpdateIssueRequest struct {
 	Fields IssueFields `json:"fields"`
 }
 
-func ListIssues(config Config, projectID string) (Issues, error) {
+func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues, error) {
 	client := http.Client{}
 
 	searchRequest := SearchRequest{
@@ -247,7 +345,10 @@ func ListIssues(config Config, projectID string) (Issues, error) {
 		return nil, err
 	}
 	req.Header.Add("Content-Type", "application/json")
-	req.SetBasicAuth(config.Username, config.Password)
+
+	for _, c := range cookies {
+		req.AddCookie(c)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -296,17 +397,6 @@ func tee2estimate(size string) float64 {
 	}
 
 	return 0.0
-}
-
-func PrintBacklog(config Config, projectID string) {
-	issues, err := ListIssues(config, projectID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for _, issue := range issues {
-		fmt.Printf("[%-12s] %s (%v)\n", issue.Key, issue.Fields.Summary, issue.Fields.StoryPoints)
-	}
 }
 
 type Issues []Issue
