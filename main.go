@@ -42,10 +42,16 @@ func main() {
 		log.Fatal(err)
 	}
 	config.AlwaysReloadHTML = alwaysReload
+	if config.SessionName == "" {
+		config.SessionName = "JSESSIONID"
+	}
+	if config.LoginPath == "" {
+		config.LoginPath = "/login"
+	}
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/login", Login(config))
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon))})
 
 	mux.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
 		var project = req.URL.Query().Get("project")
@@ -59,6 +65,8 @@ func main() {
 
 	mux.HandleFunc("/estimation", EstimationHandler(config))
 
+	mux.HandleFunc(config.LoginPath, Login(config))
+
 	log.Printf("binding to %s", addr)
 	log.Fatal(http.ListenAndServe(addr, LogRequests(RequireLogin(mux, config))))
 }
@@ -70,7 +78,7 @@ type LoginRequest struct {
 
 func RequireLogin(h http.Handler, config Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if config.LoginPath == req.URL.Path {
+		if config.LoginPath == req.URL.EscapedPath() {
 			h.ServeHTTP(w, req)
 			return
 		}
@@ -89,7 +97,7 @@ func RequireLogin(h http.Handler, config Config) http.Handler {
 
 func Login(config Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		if req.Method == http.MethodPost {
+		if req.Method == http.MethodPost && req.URL.EscapedPath() == config.LoginPath {
 			err := req.ParseForm()
 			if err != nil {
 				http.Error(w, "unable to parse form values", http.StatusBadRequest)
@@ -110,34 +118,40 @@ func Login(config Config) http.HandlerFunc {
 				return
 			}
 
-			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/rest/auth/1/session", config.JiraBase), bytes.NewBuffer(b))
+			authReq, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/rest/auth/1/session", config.JiraBase), bytes.NewBuffer(b))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			req.Header.Add("Content-Type", "application/json")
+			authReq.Header.Add("Content-Type", "application/json")
 
-			resp, err := client.Do(req)
+			resp, err := client.Do(authReq)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			defer resp.Body.Close()
 
-			io.Copy(os.Stdout, resp.Body)
-
 			for _, c := range resp.Cookies() {
 				http.SetCookie(w, c)
 			}
 
-			issues, err := ListIssues(config, "dmp", resp.Cookies())
+			redirectCookie, err := req.Cookie("wallieRedirect")
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, err.Error(), http.StatusNoContent)
 			}
 
-			fmt.Fprintf(w, "%#v", issues)
+			http.SetCookie(w, &http.Cookie{Name: "wallieRedirect", MaxAge: -1})
+			tpl.ExecuteTemplate(w, "login_redirect", redirectCookie.Value)
 			return
 		}
+
+		redirectCookie := &http.Cookie{
+			Name:     "wallieRedirect",
+			Value:    fmt.Sprintf("%s?%s", req.URL.EscapedPath(), req.URL.Query().Encode()),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, redirectCookie)
 
 		err := tpl.ExecuteTemplate(w, "login", nil)
 		if err != nil {
@@ -192,9 +206,9 @@ func (w *ResponseWriter) WriteHeader(code int) {
 
 type Config struct {
 	JiraBase         string
-	LoginPath 		 string
+	LoginPath        string
 	SessionName      string
-	AlwaysReloadHTML bool   `json:"-"`
+	AlwaysReloadHTML bool `json:"-"`
 }
 
 func readConfig(path string) (Config, error) {
@@ -457,4 +471,16 @@ type SearchRequest struct {
 	StartAt    int      `json:"startAt"`
 	MaxResults int      `json:"maxResults"`
 	Fields     []string `json:"fields"`
+}
+
+var favIcon = []byte{
+	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x02, 0x00, 0x01, 0x00, 0x01, 0x00, 0xb0, 0x00,
+	0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00,
+	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff,
+	0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff,
+	0x00, 0x00, 0xff, 0xff, 0x00, 0x00,
 }

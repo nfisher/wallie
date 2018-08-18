@@ -13,35 +13,49 @@
                 <h2 class="title">Wallie Login</h2>
 
                 <form method="post" action="/login">
-                <div class="field">
-                    <p class="control has-icons-left is-expanded">
-                        <input class="input" type="email" name="email" placeholder="Email">
-                        <span class="icon is-small is-left">
-                        <i class="fas fa-envelope"></i>
-                        </span>
-                    </p>
-                </div>
+                    <div class="field">
+                        <p class="control has-icons-left is-expanded">
+                            <input class="input" type="email" name="email" placeholder="Email">
+                            <span class="icon is-small is-left">
+                            <i class="fas fa-envelope"></i>
+                            </span>
+                        </p>
+                    </div>
 
-                <div class="field">
-                    <p class="control has-icons-left is-expanded">
-                        <input class="input" type="password" name="password" placeholder="Password">
-                        <span class="icon is-small is-left">
-                        <i class="fas fa-lock"></i>
-                        </span>
-                    </p>
-                </div>
+                    <div class="field">
+                        <p class="control has-icons-left is-expanded">
+                            <input class="input" type="password" name="password" placeholder="Password">
+                            <span class="icon is-small is-left">
+                            <i class="fas fa-lock"></i>
+                            </span>
+                        </p>
+                    </div>
 
-                <div class="field">
-                    <p class="control">
-                        <button class="button is-success">
-                            Login
-                        </button>
-                    </p>
-                </div>
+                    <div class="field">
+                        <p class="control">
+                            <button class="button is-success is-pulled-right">
+                                Login &raquo;
+                            </button>
+                        </p>
+                    </div>
                 </form>
             </section>
         </div>
     </div>
+</body>
+</html>
+{{- end }}
+
+{{ define "login_redirect" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>
+        document.location = '{{ . }}';
+    </script>
+</head>
+<body>
+<p><a href="{{ . }}">{{ . }}</a></p>
 </body>
 </html>
 {{- end }}
