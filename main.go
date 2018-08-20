@@ -46,7 +46,7 @@ func main() {
 	flag.Parse()
 
 	config, err := readConfig(configPath)
-	if err != nil {
+	if err != nil && jiraBase == "" {
 		log.Fatal(err)
 	}
 	if config.SessionName == "" {
@@ -58,6 +58,7 @@ func main() {
 	if jiraBase != "" {
 		config.JiraBase = jiraBase
 	}
+
 	config.AlwaysReloadHTML = alwaysReload
 
 	mux := http.NewServeMux()
