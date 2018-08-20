@@ -3,4 +3,4 @@ build:
     - go
 
 run:
-  web: f8kanban
+  web: wallie
