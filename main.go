@@ -442,7 +442,9 @@ type Issues []Issue
 func (i Issues) rank(r float64) Issues {
 	var issues Issues
 	for _, v := range i {
-		if v.Fields.StoryPoints == r {
+		if r == 0.0 && v.Fields.StoryPoints < 1.0 {
+			issues = append(issues, v)
+		} else if v.Fields.StoryPoints == r {
 			issues = append(issues, v)
 		}
 	}
