@@ -25,7 +25,7 @@
 #   unused-packages = true
 
 [metadata.heroku]
-  root-package = "github.com/connected-ventures/wallie"
+  root-package = "github.com/connectedventures/wallie"
 
 [prune]
   go-tests = true
