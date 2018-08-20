@@ -31,9 +31,17 @@ func main() {
 	log.Println("version:", Version)
 	log.Println("source:", Origin)
 
+	port := os.Getenv("PORT")
+	if port != "" {
+		port = ":" + port
+	} else {
+		port = ":3000"
+	}
+	jiraBase := os.Getenv("JIRA_BASE")
+
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
-	flag.StringVar(&addr, "listen", ":3000", "listening address")
+	flag.StringVar(&addr, "listen", port, "listening address")
 	flag.StringVar(&projectID, "project", "dmp", "project ID to query on the command-line")
 	flag.Parse()
 
@@ -41,13 +49,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	config.AlwaysReloadHTML = alwaysReload
 	if config.SessionName == "" {
 		config.SessionName = "JSESSIONID"
 	}
 	if config.LoginPath == "" {
 		config.LoginPath = "/login"
 	}
+	if jiraBase != "" {
+		config.JiraBase = jiraBase
+	}
+	config.AlwaysReloadHTML = alwaysReload
 
 	mux := http.NewServeMux()
 
