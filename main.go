@@ -6,13 +6,13 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"regexp"
 	"time"
-	"io"
 )
 
 var (
@@ -51,7 +51,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon))})
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon)) })
 
 	mux.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
 		var project = req.URL.Query().Get("project")
@@ -132,7 +132,10 @@ func Login(config Config) http.HandlerFunc {
 			}
 			defer resp.Body.Close()
 
+			io.Copy(os.Stdout, resp.Body)
+
 			for _, c := range resp.Cookies() {
+				c.MaxAge = 60 * 60 // 1 hour
 				http.SetCookie(w, c)
 			}
 
@@ -146,12 +149,15 @@ func Login(config Config) http.HandlerFunc {
 			return
 		}
 
-		redirectCookie := &http.Cookie{
-			Name:     "wallieRedirect",
-			Value:    fmt.Sprintf("%s?%s", req.URL.EscapedPath(), req.URL.Query().Encode()),
-			HttpOnly: true,
+		_, cookieErr := req.Cookie("wallieRedirect")
+		if cookieErr == http.ErrNoCookie {
+			redirectCookie := &http.Cookie{
+				Name:     "wallieRedirect",
+				Value:    fmt.Sprintf("%s?%s", req.URL.EscapedPath(), req.URL.Query().Encode()),
+				HttpOnly: true,
+			}
+			http.SetCookie(w, redirectCookie)
 		}
-		http.SetCookie(w, redirectCookie)
 
 		err := tpl.ExecuteTemplate(w, "login", nil)
 		if err != nil {
@@ -400,17 +406,23 @@ var validKey = regexp.MustCompile(`^[A-Z]+-[0-9]+$`)
 
 func tee2estimate(size string) float64 {
 	switch size {
+	case "XS":
+		return extraSmall
 	case "S":
-		return 1.0
+		return small
 	case "M":
-		return 2.0
+		return medium
 	case "L":
-		return 3.0
+		return large
+	case "XL":
+		return extraLarge
+	case "XXL":
+		return extraExtraLarge
 	case "U":
-		return -1.0
+		return unknown
 	}
 
-	return 0.0
+	return undefined
 }
 
 type Issues []Issue
@@ -425,20 +437,42 @@ func (i Issues) rank(r float64) Issues {
 	return issues
 }
 
+// XS, S, M, L, XL, XXL
+// 1,  2, 3, 5, 10, 20
+
+const (
+	unknown         = -1.0
+	undefined       = 0.0
+	extraSmall      = 1.0
+	small           = 2.0
+	medium          = 3.0
+	large           = 5.0
+	extraLarge      = 10.0
+	extraExtraLarge = 20.0
+)
+
+func (i Issues) ExtraSmall() Issues {
+	return i.rank(extraSmall)
+}
+
 func (i Issues) Small() Issues {
-	return i.rank(1.0)
+	return i.rank(small)
 }
 
 func (i Issues) Medium() Issues {
-	return i.rank(2.0)
+	return i.rank(medium)
 }
 
 func (i Issues) Large() Issues {
-	return i.rank(3.0)
+	return i.rank(large)
 }
 
 func (i Issues) ExtraLarge() Issues {
-	return i.rank(5.0)
+	return i.rank(extraLarge)
+}
+
+func (i Issues) ExtraExtraLarge() Issues {
+	return i.rank(extraExtraLarge)
 }
 
 func (i Issues) Unknown() Issues {

@@ -92,6 +92,12 @@
                 <div class="columns">
                     <div class="column">
                         <div class="control">
+                            <button name="size" class="button is-fullwidth" type="submit" value="XS">XS</button>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="control">
                         <button name="size" class="button is-fullwidth" type="submit" value="S">S</button>
                         </div>
                     </div>
@@ -110,7 +116,13 @@
 
                     <div class="column">
                         <div class="control">
-                        <button name="size" class="button is-fullwidth" type="submit" value="U">?</button>
+                            <button name="size" class="button is-fullwidth" type="submit" value="XL">XL</button>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="control">
+                            <button name="size" class="button is-fullwidth" type="submit" value="XXL">XXL</button>
                         </div>
                     </div>
                 </div>
@@ -122,14 +134,23 @@
 <section class="section estimation">
     <div class="columns" id="wall">
         <div class="column has-background-light">
-            <h2 class="title is-5 has-text-centered">Requires estimation</h2>
+            <h2 class="title is-5 has-text-centered">To estimate</h2>
             {{ range $index, $el := .Issues.Other }}
                 {{- template "sized-card" $el -}}
             {{ end }}
         </div>
 
         <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Small (1)</h2>
+            <h2 class="title is-5 has-text-centered has-text-grey">XS</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.ExtraSmall }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">S</h2>
             <div class="collapsable">
             {{ range $index, $el := .Issues.Small }}
                 {{- template "sized-card" $el -}}
@@ -138,27 +159,36 @@
         </div>
 
         <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Medium (2)</h2>
+            <h2 class="title is-5 has-text-centered has-text-grey">M</h2>
             <div class="collapsable">
-        {{ range $index, $el := .Issues.Medium }}
-            {{- template "sized-card" $el -}}
-        {{ end }}
+            {{ range $index, $el := .Issues.Medium }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
             </div>
         </div>
 
         <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Large (3)</h2>
+            <h2 class="title is-5 has-text-centered has-text-grey">L</h2>
             <div class="collapsable">
-        {{ range $index, $el := .Issues.Large }}
-            {{- template "sized-card" $el -}}
-        {{ end }}
+            {{ range $index, $el := .Issues.Large }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
             </div>
         </div>
 
         <div class="column">
-            <h2 class="title is-5 has-text-centered has-text-grey">Unknown (-1)</h2>
+            <h2 class="title is-5 has-text-centered has-text-grey">XL</h2>
             <div class="collapsable">
-            {{ range $index, $el := .Issues.Unknown }}
+            {{ range $index, $el := .Issues.ExtraLarge }}
+                {{- template "sized-card" $el -}}
+            {{ end }}
+            </div>
+        </div>
+
+        <div class="column">
+            <h2 class="title is-5 has-text-centered has-text-grey">XXL</h2>
+            <div class="collapsable">
+            {{ range $index, $el := .Issues.ExtraExtraLarge }}
                 {{- template "sized-card" $el -}}
             {{ end }}
             </div>
@@ -291,7 +321,7 @@
     }
     .card-content {
         padding: 0.5rem 0.75rem;
-        min-height:6em;
+        min-height:7.5em;
     }
     .collapsable {
         min-height:100%;
