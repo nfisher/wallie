@@ -1,3 +1,96 @@
+{{ define "sizing_board" -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{{ template "head" "Sizing Board" }}
+</head>
+<body>
+<section class="section estimation">
+    <p><a href="">estimation</a> / sizing</p>
+    <div class="content">
+        <div class="columns" id="sizing">
+            <div class="column is-two-thirds">
+                <ul>
+                {{ range $index, $el := .Issues.Other }}
+                    <li><div class="issue" draggable="true">{{ .Fields.Summary }}</div></li>
+                {{ end }}
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+<script>
+    "use strict";
+
+    let dragSrcEl = null;
+
+    function handleDragStart(e) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', e.target.innerHTML);
+
+        dragSrcEl = this;
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault(); // Necessary. Allows us to drop.
+        }
+
+        e.dataTransfer.dropEffect = 'move';  // See the section on the DataTransfer object.
+
+        return false;
+    }
+
+    function handleDragEnter(e) {
+        // this / e.target is the current hover target.
+        this.classList.add('over');
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('over');  // this / e.target is previous target element.
+    }
+
+    function handleDrop(e) {
+        // this / e.target is current target element.
+
+        if (e.stopPropagation) {
+            e.stopPropagation(); // stops the browser from redirecting.
+        }
+
+        // See the section on the DataTransfer object.
+        if (dragSrcEl !== this) {
+            // Set the source column's HTML to the HTML of the column we dropped on.
+            dragSrcEl.innerHTML = this.innerHTML;
+            this.innerHTML = e.dataTransfer.getData('text/html');
+        }
+
+        return false;
+    }
+
+    function handleDragEnd(e) {
+        // this/e.target is the source node.
+
+        [].forEach.call(cols, function (col) {
+            col.classList.remove('over');
+        });
+    }
+
+
+    let cols = document.querySelectorAll('.columns .issue');
+    [].forEach.call(cols, function(col) {
+        col.addEventListener('dragstart', handleDragStart, false);
+        col.addEventListener('dragenter', handleDragEnter, false);
+        col.addEventListener('dragover', handleDragOver, false);
+        col.addEventListener('dragleave', handleDragLeave, false);
+        col.addEventListener('drop', handleDrop, false);
+        col.addEventListener('dragend', handleDragEnd, false);
+    });
+
+</script>
+</body>
+</html>
+{{- end }}
+
 {{ define "login" -}}
 <!DOCTYPE html>
 <html lang="en">
@@ -176,6 +269,7 @@
             </div>
         </div>
 
+        <!--
         <div class="column">
             <h2 class="title is-5 has-text-centered has-text-grey">XL</h2>
             <div class="collapsable">
@@ -184,6 +278,7 @@
             {{ end }}
             </div>
         </div>
+        -->
 
         <div class="column">
             <h2 class="title is-5 has-text-centered has-text-grey">XXL</h2>
@@ -297,7 +392,7 @@
 <link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans|Inconsolata" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
-<script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
 <style>
     body, button, input, select {
         font-family: 'Open Sans', sans-serif;
@@ -319,9 +414,13 @@
         padding-top:0;
         padding-bottom:0;
     }
-    .card-content {
+    #wall .card-content {
         padding: 0.5rem 0.75rem;
         min-height:7.5em;
+    }
+    #sizing .card-content {
+        padding: 0.5rem 0.75rem;
+        min-height:3.75em;
     }
     .collapsable {
         min-height:100%;
@@ -334,6 +433,29 @@
     }
     .estimation {
         padding:1px 0.75rem;
+    }
+    #sizing li {
+        list-style:none;
+        margin:0;
+        padding:0;
+    }
+    .issue {
+        background-color:white;
+        border: 1px solid hotpink;
+        margin:0;
+        padding:1em 0.75em;
+    }
+    .over {
+        border: 1px dashed #000;
+    }
+    [draggable] {
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        user-select: none;
+        /* Required to make elements draggable in old WebKit */
+        -khtml-user-drag: element;
+        -webkit-user-drag: element;
     }
 </style>
 {{ end }}

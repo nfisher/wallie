@@ -76,6 +76,7 @@ func main() {
 	})
 
 	mux.HandleFunc("/estimation", EstimationHandler(config))
+	mux.HandleFunc("/sizing", SizingHandler(config))
 
 	mux.HandleFunc(config.LoginPath, Login(config))
 
@@ -143,8 +144,6 @@ func Login(config Config) http.HandlerFunc {
 				return
 			}
 			defer resp.Body.Close()
-
-			io.Copy(os.Stdout, resp.Body)
 
 			for _, c := range resp.Cookies() {
 				c.MaxAge = 60 * 60 // 1 hour
@@ -246,6 +245,35 @@ func readConfig(path string) (Config, error) {
 }
 
 var validProjectID = regexp.MustCompile(`^\w+$`)
+
+func SizingHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		var tpl = tpl
+
+		projectID := req.URL.Query().Get("project")
+
+		if !validProjectID.MatchString(projectID) {
+			http.Error(w, "Invalid project ID", http.StatusNotFound)
+			return
+		}
+
+		if config.AlwaysReloadHTML {
+			tpl = template.Must(template.ParseGlob("tpl/*.html"))
+		}
+
+		issues, err := ListIssues(config, projectID, req.Cookies())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		err = tpl.ExecuteTemplate(w, "sizing_board", EstimationPage{JiraBase: config.JiraBase, Issues: issues})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
 
 func EstimationHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -358,7 +386,7 @@ func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues
 
 	searchRequest := SearchRequest{
 		JQL:        fmt.Sprintf(`type = Story AND project = "%s" AND status not in (Done, Closed) ORDER BY rank`, projectID),
-		MaxResults: 100,
+		MaxResults: 200,
 		Fields: []string{
 			"summary",
 			"customfield_10006",
@@ -403,6 +431,8 @@ func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues
 		log.Printf("%s\n", body)
 		return nil, err
 	}
+
+	log.Printf("read %v issues", queryResp.Total)
 
 	return queryResp.Issues, nil
 }
