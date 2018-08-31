@@ -386,7 +386,7 @@ func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues
 
 	searchRequest := SearchRequest{
 		JQL:        fmt.Sprintf(`type = Story AND project = "%s" AND status not in (Done, Closed) ORDER BY rank`, projectID),
-		MaxResults: 200,
+		MaxResults: 100,
 		Fields: []string{
 			"summary",
 			"customfield_10006",
@@ -432,7 +432,7 @@ func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues
 		return nil, err
 	}
 
-	log.Printf("read %v issues", queryResp.Total)
+	log.Printf("read %v issues, max %v", queryResp.Total, queryResp.MaxResults)
 
 	return queryResp.Issues, nil
 }
