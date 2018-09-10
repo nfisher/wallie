@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 GIT_SHA := $(shell git log --format='%H' -1)
 GIT_ORIGIN := $(shell git remote get-url --push origin)
-SRC = *.go tpl/*.html
+SRC = $(shell find . -path ./vendor -prune -o -name '*.go' -print) tpl/*.html
 
 .PHONY: all
 all: docker
