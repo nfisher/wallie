@@ -12,15 +12,27 @@ import (
 	"net/http"
 	"os"
 	"regexp"
-	"time"
+
+	"github.com/nfisher/wallie/reqlog"
 )
 
 var (
+	// Version is the git SHA injected at the time of compilation.
 	Version = ""
-	Origin  = ""
+
+	// Origin is the git origin injected at the time of compilation.
+	Origin = ""
 )
 
 func main() {
+	err := Execute()
+	if err != nil {
+		log.Println(err)
+		os.Exit(1)
+	}
+}
+
+func Execute() error {
 	var configPath string
 	var addr string
 	var projectID string
@@ -31,12 +43,7 @@ func main() {
 	log.Println("version:", Version)
 	log.Println("source:", Origin)
 
-	port := os.Getenv("PORT")
-	if port != "" {
-		port = ":" + port
-	} else {
-		port = ":3000"
-	}
+	port := DefaultAddress()
 	jiraBase := os.Getenv("JIRA_BASE")
 
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
@@ -47,7 +54,7 @@ func main() {
 
 	config, err := readConfig(configPath)
 	if err != nil && jiraBase == "" {
-		log.Fatal(err)
+		return err
 	}
 	if config.SessionName == "" {
 		config.SessionName = "JSESSIONID"
@@ -63,27 +70,42 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon)) })
-
-	mux.HandleFunc("/cfd", func(w http.ResponseWriter, req *http.Request) {
-		var project = req.URL.Query().Get("project")
-		if !validProjectID.MatchString(project) {
-			http.Error(w, "unknown project ID", http.StatusNotFound)
-			return
-		}
-
-		fmt.Fprintln(w, project)
-	})
-
+	mux.HandleFunc("/favicon.ico", Favicon)
+	mux.HandleFunc("/cfd", CumulativeFlow)
 	mux.HandleFunc("/estimation", EstimationHandler(config))
 	mux.HandleFunc("/sizing", SizingHandler(config))
-
 	mux.HandleFunc(config.LoginPath, Login(config))
 
 	log.Printf("binding to %s", addr)
-	log.Fatal(http.ListenAndServe(addr, LogRequests(RequireLogin(mux, config))))
+	return http.ListenAndServe(addr, reqlog.LogRequests(RequireLogin(mux, config)))
 }
 
+func CumulativeFlow(w http.ResponseWriter, req *http.Request) {
+	var project = req.URL.Query().Get("project")
+	if !validProjectID.MatchString(project) {
+		http.Error(w, "unknown project ID", http.StatusNotFound)
+		return
+	}
+
+	fmt.Fprintln(w, project)
+}
+
+func Favicon(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon)) }
+
+// DefaultAddress returns `:$PORT` if defined else `:3000`.
+func DefaultAddress() string {
+	port := os.Getenv("PORT")
+
+	var listeningAddress = ":3000"
+
+	if port != "" {
+		listeningAddress = ":" + port
+	}
+
+	return listeningAddress
+}
+
+// LoginRequest encapsulates a user login.
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -91,7 +113,8 @@ type LoginRequest struct {
 
 func RequireLogin(h http.Handler, config Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if config.LoginPath == req.URL.EscapedPath() {
+		p := req.URL.EscapedPath()
+		if config.LoginPath == p || "/favicon.ico" == p {
 			h.ServeHTTP(w, req)
 			return
 		}
@@ -176,49 +199,6 @@ func Login(config Config) http.HandlerFunc {
 			return
 		}
 	}
-}
-
-func LogRequests(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		wr := &ResponseWriter{ResponseWriter: w}
-		start := time.Now()
-		h.ServeHTTP(wr, req)
-		log.Printf(`%v %s %s - %v - %v - %vB`, wr.Status(), req.Method, req.URL.Path, req.RemoteAddr, time.Now().Sub(start), wr.Bytes())
-	})
-}
-
-type ResponseWriter struct {
-	http.ResponseWriter
-	bytes       int
-	status      int
-	wroteHeader bool
-}
-
-func (w *ResponseWriter) Status() int {
-	return w.status
-}
-
-func (w *ResponseWriter) Bytes() int {
-	return w.bytes
-}
-
-func (w *ResponseWriter) Write(p []byte) (n int, err error) {
-	if !w.wroteHeader {
-		w.WriteHeader(http.StatusOK)
-	}
-	w.bytes += len(p)
-
-	return w.ResponseWriter.Write(p)
-}
-
-func (w *ResponseWriter) WriteHeader(code int) {
-	w.ResponseWriter.WriteHeader(code)
-	// Check after in case there's error handling in the wrapped ResponseWriter.
-	if w.wroteHeader {
-		return
-	}
-	w.status = code
-	w.wroteHeader = true
 }
 
 type Config struct {
@@ -371,7 +351,7 @@ func UpdateIssue(config Config, key, summary, description string, estimate float
 			return err
 		}
 
-		return fmt.Errorf("%d => %s\n", resp.StatusCode, b)
+		return fmt.Errorf("%d => %s", resp.StatusCode, b)
 	}
 
 	return nil
@@ -552,13 +532,17 @@ type SearchRequest struct {
 }
 
 var favIcon = []byte{
-	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x02, 0x00, 0x01, 0x00, 0x01, 0x00, 0xb0, 0x00,
+	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x10, 0x10, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb0, 0x00,
 	0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00,
-	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff,
-	0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff,
-	0x00, 0x00, 0xff, 0xff, 0x00, 0x00,
+	0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0xfb, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xc0, 0x00, 0x00, 0x0f, 0xf0,
+	0x00, 0x00, 0x1c, 0x38, 0x00, 0x00, 0x3b, 0xdc, 0x00, 0x00, 0x37, 0xec, 0x00, 0x00, 0x77, 0xee,
+	0x00, 0x00, 0x7f, 0xfe, 0x00, 0x00, 0x79, 0x9e, 0x00, 0x00, 0x79, 0x9e, 0x00, 0x00, 0x3f, 0xfc,
+	0x00, 0x00, 0x3f, 0xfc, 0x00, 0x00, 0x1f, 0xf8, 0x00, 0x00, 0x0f, 0xf0, 0x00, 0x00, 0x03, 0xc0,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfc, 0x3f, 0x00, 0x00, 0xf0, 0x0f, 0x00, 0x00, 0xe0, 0x07,
+	0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01,
+	0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0xe0, 0x07, 0x00, 0x00, 0xf0, 0x0f,
+	0x00, 0x00, 0xfc, 0x3f, 0x00, 0x00,
 }
