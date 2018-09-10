@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/nfisher/wallie"
+	"github.com/nfisher/wallie/jira"
 	"github.com/nfisher/wallie/reqlog"
 )
 
@@ -64,18 +66,18 @@ func Execute() error {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/favicon.ico", Favicon)
-	mux.HandleFunc("/cfd", CumulativeFlow)
-	mux.HandleFunc("/estimation", EstimationHandler(config))
-	mux.HandleFunc("/sizing", SizingHandler(config))
-	mux.HandleFunc(config.LoginPath, Login(config))
+	mux.HandleFunc("/favicon.ico", jira.Favicon)
+	mux.HandleFunc("/cfd", jira.CumulativeFlow)
+	mux.HandleFunc("/estimation", jira.EstimationHandler(config))
+	mux.HandleFunc("/sizing", jira.SizingHandler(config))
+	mux.HandleFunc(config.LoginPath, jira.Login(config))
 
 	log.Printf("binding to %s", addr)
-	return http.ListenAndServe(addr, reqlog.LogRequests(RequireLogin(mux, config)))
+	return http.ListenAndServe(addr, reqlog.LogRequests(jira.RequireLogin(mux, config)))
 }
 
-func readConfig(path string) (Config, error) {
-	var config Config
+func readConfig(path string) (wallie.Config, error) {
+	var config wallie.Config
 
 	r, err := os.Open(path)
 	if err != nil {
@@ -88,13 +90,6 @@ func readConfig(path string) (Config, error) {
 	}
 
 	return config, nil
-}
-
-type Config struct {
-	JiraBase         string
-	LoginPath        string
-	SessionName      string
-	AlwaysReloadHTML bool `json:"-"`
 }
 
 // DefaultAddress returns `:$PORT` if defined else `:3000`.

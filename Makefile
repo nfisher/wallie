@@ -24,7 +24,7 @@ run: wallie
 wallie.amd64: $(SRC)
 	CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
 	 -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN} -extldflags -static" \
-	 -installsuffix cgo -o wallie.amd64 .
+	 -installsuffix cgo -o wallie.amd64 ./cmd/walliej
 
 wallie: $(SRC)
-	go build -v -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}"
+	go build -v -o wallie -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}" ./cmd/walliej

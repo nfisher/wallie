@@ -1,4 +1,4 @@
-package main
+package jira
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+
+	"github.com/nfisher/wallie"
 )
 
 func CumulativeFlow(w http.ResponseWriter, req *http.Request) {
@@ -22,7 +24,7 @@ func CumulativeFlow(w http.ResponseWriter, req *http.Request) {
 
 func Favicon(w http.ResponseWriter, req *http.Request) { io.Copy(w, bytes.NewReader(favIcon)) }
 
-func RequireLogin(h http.Handler, config Config) http.Handler {
+func RequireLogin(h http.Handler, config wallie.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		p := req.URL.EscapedPath()
 		if config.LoginPath == p || "/favicon.ico" == p {
@@ -42,7 +44,7 @@ func RequireLogin(h http.Handler, config Config) http.Handler {
 	})
 }
 
-func Login(config Config) http.HandlerFunc {
+func Login(config wallie.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost && req.URL.EscapedPath() == config.LoginPath {
 			err := req.ParseForm()
@@ -118,7 +120,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func SizingHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
+func SizingHandler(config wallie.Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var tpl = tpl
 
@@ -147,7 +149,7 @@ func SizingHandler(config Config) func(w http.ResponseWriter, req *http.Request)
 	}
 }
 
-func EstimationHandler(config Config) func(w http.ResponseWriter, req *http.Request) {
+func EstimationHandler(config wallie.Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
 		var tpl = tpl
 

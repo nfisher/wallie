@@ -1,4 +1,4 @@
-package main
+package jira
 
 import (
 	"bytes"
@@ -7,11 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/nfisher/wallie"
 )
 
 var client = http.Client{}
 
-func UpdateIssue(config Config, key, summary, description string, estimate float64, cookies []*http.Cookie) error {
+func UpdateIssue(config wallie.Config, key, summary, description string, estimate float64, cookies []*http.Cookie) error {
 	updateRequest := UpdateIssueRequest{
 		Fields: IssueFields{
 			Summary:     summary,
@@ -56,7 +58,7 @@ type UpdateIssueRequest struct {
 	Fields IssueFields `json:"fields"`
 }
 
-func ListIssues(config Config, projectID string, cookies []*http.Cookie) (Issues, error) {
+func ListIssues(config wallie.Config, projectID string, cookies []*http.Cookie) (Issues, error) {
 	client := http.Client{}
 
 	searchRequest := SearchRequest{
