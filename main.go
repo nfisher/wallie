@@ -31,14 +31,14 @@ func Execute() error {
 	var addr string
 	var projectID string
 	var alwaysReload bool
+	var port = DefaultAddress()
+	var jiraBase = os.Getenv("JIRA_BASE")
 
+	log.SetOutput(os.Stdout)
 	log.SetFlags(log.LstdFlags | log.LUTC | log.Lshortfile)
 	log.Println("starting wallie")
 	log.Println("version:", Version)
 	log.Println("source:", Origin)
-
-	port := DefaultAddress()
-	jiraBase := os.Getenv("JIRA_BASE")
 
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
