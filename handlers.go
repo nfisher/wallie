@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"regexp"
 )
 
 func CumulativeFlow(w http.ResponseWriter, req *http.Request) {
@@ -212,4 +213,36 @@ var favIcon = []byte{
 	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01,
 	0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0xe0, 0x07, 0x00, 0x00, 0xf0, 0x0f,
 	0x00, 0x00, 0xfc, 0x3f, 0x00, 0x00,
+}
+
+var validProjectID = regexp.MustCompile(`^\w+$`)
+
+type EstimationPage struct {
+	JiraBase string
+	Issues   Issues
+}
+
+var tpl = template.Must(template.ParseGlob("tpl/*.html"))
+
+var validKey = regexp.MustCompile(`^[A-Z]+-[0-9]+$`)
+
+func tee2estimate(size string) float64 {
+	switch size {
+	case "XS":
+		return extraSmall
+	case "S":
+		return small
+	case "M":
+		return medium
+	case "L":
+		return large
+	case "XL":
+		return extraLarge
+	case "XXL":
+		return extraExtraLarge
+	case "U":
+		return unknown
+	}
+
+	return undefined
 }
