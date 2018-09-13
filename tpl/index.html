@@ -211,13 +211,13 @@
 
                     <div class="column">
                         <div class="control">
-                            <button name="size" class="button is-fullwidth" type="submit" value="XL">XL (10)</button>
+                            <button name="size" class="button is-fullwidth" type="submit" value="XL">XL (8)</button>
                         </div>
                     </div>
 
                     <div class="column">
                         <div class="control">
-                            <button name="size" class="button is-fullwidth" type="submit" value="XXL">XXL (20)</button>
+                            <button name="size" class="button is-fullwidth" type="submit" value="XXL">XXL (13)</button>
                         </div>
                     </div>
                 </div>
@@ -358,8 +358,16 @@
                 case '3':
                     modalButtons[2].className = 'is-primary button is-fullwidth';
                     break;
-                case '-1':
+                case '5':
                     modalButtons[3].className = 'is-primary button is-fullwidth';
+                    break;
+                case '8':
+                case '10':
+                    modalButtons[4].className = 'is-primary button is-fullwidth';
+                    break;
+                case '13':
+                case '20':
+                    modalButtons[5].className = 'is-primary button is-fullwidth';
                     break;
             }
             modal.className = 'modal is-active';

@@ -11,6 +11,34 @@ import (
 	"github.com/nfisher/wallie"
 )
 
+// Client is a Jira client.
+type CookieClient struct {
+	Config  wallie.Config
+	Cookies []*http.Cookie
+}
+
+// ListStories outputs a list of stories that are not done.
+func (c *CookieClient) ListStories(projectID string) (wallie.Stories, error) {
+	var stories wallie.Stories
+
+	ss, err := ListIssues(c.Config, projectID, c.Cookies)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range ss {
+		story := wallie.Story{
+			Description: s.Fields.Description,
+			Feature:     s.Fields.Summary,
+			Size:        int(s.Fields.StoryPoints),
+			ID:          s.Key,
+		}
+		stories = append(stories, story)
+	}
+
+	return stories, nil
+}
+
 var client = http.Client{}
 
 func UpdateIssue(config wallie.Config, key, summary, description string, estimate float64, cookies []*http.Cookie) error {
@@ -145,8 +173,8 @@ const (
 	small           = 2.0
 	medium          = 3.0
 	large           = 5.0
-	extraLarge      = 10.0
-	extraExtraLarge = 20.0
+	extraLarge      = 8.0
+	extraExtraLarge = 13.0
 )
 
 func (i Issues) ExtraSmall() Issues {
@@ -166,11 +194,13 @@ func (i Issues) Large() Issues {
 }
 
 func (i Issues) ExtraLarge() Issues {
-	return i.rank(extraLarge)
+	// rank(10) is to support legacy XL
+	return append(i.rank(extraLarge), i.rank(10)...)
 }
 
 func (i Issues) ExtraExtraLarge() Issues {
-	return i.rank(extraExtraLarge)
+	// rank(20) is to support legacy XXL
+	return append(i.rank(extraExtraLarge), i.rank(20)...)
 }
 
 func (i Issues) Unknown() Issues {
