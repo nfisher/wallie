@@ -27,7 +27,7 @@
 [metadata.heroku]
   root-package = "github.com/nfisher/wallie"
   ensure = "false"
-  install = ["./..."]
+  install = [ "./cmd/..." ]
 
 [prune]
   go-tests = true
