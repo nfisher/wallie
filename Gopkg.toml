@@ -27,6 +27,7 @@
 [metadata.heroku]
   root-package = "github.com/connectedventures/wallie"
   ensure = "false"
+  install = ["./..."]
 
 [prune]
   go-tests = true
