@@ -87,11 +87,31 @@ type UpdateIssueRequest struct {
 }
 
 func ListIssues(config wallie.Config, projectID string, cookies []*http.Cookie) (Issues, error) {
-	client := http.Client{}
+	var isLast = false
+	var issues Issues
+	var page = 0
+	client := &http.Client{}
 
+	for !isLast {
+		queryResp, err := paginatedSearch(config, projectID, cookies, client, page)
+		if err != nil {
+			log.Println(err)
+		}
+
+		issues = append(issues, queryResp.Issues...)
+		isLast = queryResp.Total == len(issues)
+		log.Printf("read %v issues, starting at %v, max %v, is last %v\n", len(queryResp.Issues), queryResp.StartAt, queryResp.Total, isLast)
+		page++
+	}
+	return issues, nil
+}
+
+func paginatedSearch(config wallie.Config, projectID string, cookies []*http.Cookie, client *http.Client, page int) (*QueryResp, error) {
+	const pageSize = 100
 	searchRequest := SearchRequest{
 		JQL:        fmt.Sprintf(`type = Story AND project = "%s" AND status not in (Done, Closed) ORDER BY rank`, projectID),
-		MaxResults: 100,
+		StartAt:    pageSize * page,
+		MaxResults: pageSize,
 		Fields: []string{
 			"summary",
 			"customfield_10006",
@@ -137,9 +157,7 @@ func ListIssues(config wallie.Config, projectID string, cookies []*http.Cookie) 
 		return nil, err
 	}
 
-	log.Printf("read %v issues, max %v", queryResp.Total, queryResp.MaxResults)
-
-	return queryResp.Issues, nil
+	return &queryResp, nil
 }
 
 type QueryResp struct {
@@ -147,6 +165,7 @@ type QueryResp struct {
 	Total      int    `json:"total"`
 	StartAt    int    `json:"startAt"`
 	Issues     Issues `json:"issues"`
+	IsLast     bool   `json:"isLast"`
 }
 
 type Issues []Issue
