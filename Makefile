@@ -19,7 +19,7 @@ publish: docker
 
 .PHONY: run
 run: wallie
-	./wallie -listen :8000 -reload
+	./wallie -listen localhost:8000 -reload
 
 wallie.amd64: $(SRC)
 	CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
