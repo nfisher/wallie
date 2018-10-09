@@ -1,10 +1,18 @@
-SHELL := /bin/bash
+SHELL := /bin/bash -o pipefail
 GIT_SHA := $(shell git log --format='%H' -1)
 GIT_ORIGIN := $(shell git remote get-url --push origin)
 SRC = $(shell find . -path ./vendor -prune -o -name '*.go' -print) tpl/*.html
+GO := go build -v -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}"
+GOAMD64 := CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
+	 -ldflags "-s -X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN} -extldflags -static" \
+	 -installsuffix cgo
 
 .PHONY: all
-all: docker
+all: test
+
+.PHONY: test
+test:
+	go test -v ./...
 
 .PHONY: docker
 docker: wallie.amd64
@@ -21,10 +29,9 @@ publish: docker
 run: wallie
 	./wallie -listen localhost:8000 -reload
 
-wallie.amd64: $(SRC)
-	CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
-	 -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN} -extldflags -static" \
-	 -installsuffix cgo -o wallie.amd64 ./cmd/walliej
-
 wallie: $(SRC)
-	go build -v -o wallie -ldflags "-X main.Version=${GIT_SHA} -X main.Origin=${GIT_ORIGIN}" ./cmd/walliej
+	$(GO) -o $@  ./cmd/walliej
+
+wallie.amd64: $(SRC)
+	$(GOAMD64) -o wallie.amd64 ./cmd/walliej
+

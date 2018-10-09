@@ -1,0 +1,72 @@
+{{- define "story_estimate_dialogue" -}}
+<div class="modal" id="modal">
+    <div class="modal-background" id="background"></div>
+    <div class="modal-card">
+        <section class="modal-card-body has-background-light">
+            <form method="post">
+                <p id="modalTitle" class="is-pulled-right"></p>
+                <input name="key" type="hidden" id="modalKey" />
+
+                <div class="field">
+                    <label class="label" for="modalSummary">Summary</label>
+                    <div class="control">
+                        <input name="summary" type="text" class="input" id="modalSummary" />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label class="label" for="modalDescription">Description</label>
+                    <div class="control">
+                        <textarea name="description" class="textarea" rows="16" id="modalDescription"></textarea>
+                    </div>
+                </div>
+
+                <div class="columns">
+                    {{ range $index, $size := .Sizes }}
+                    <div class="column">
+                        <div class="control">
+                            <button name="size" class="button is-fullwidth" type="submit" value="{{ $size }}">
+                                {{ $size }}
+                            </button>
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+{{- end -}}
+
+{{- define "backlog_estimation" -}}
+<section class="section estimation">
+    <div class="columns" id="wall">
+        {{ range $i, $group := .BySize -}}
+        {{ template "story_group" $group -}}
+        {{ end -}}
+    </div>
+</section>
+{{- end -}}
+
+{{- define "story_group" -}}
+<div class="column">
+    <h2 class="title is-5 has-text-centered has-text-grey">{{ .Name }}</h2>
+    <div class="collapsable">
+        {{ range $index, $el := .Stories }}
+        {{- template "story_card" $el -}}
+        {{ end }}
+    </div>
+</div>
+{{- end -}}
+
+{{- define "story_card" -}}
+<div class="card" data-author="{{ .Author }}" data-description="{{ .Description }}" data-id="{{ .ID }}" {{ if .Size }}
+    data-size="{{ .Size }}" {{ end }} data-title="{{ .Title }}">
+    <div class="card-content">
+        <div class="content">
+            {{- .Title -}}
+            <span class="has-text-grey-light">{{ .ID }}</span>
+        </div>
+    </div>
+</div>
+{{- end -}}
