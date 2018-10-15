@@ -6,10 +6,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 
 	"github.com/nfisher/wallie"
+	"github.com/nfisher/wallie/project"
 )
+
+func New(config wallie.Config, cookies []*http.Cookie) project.Client {
+	return &CookieClient{
+		Config:  config,
+		Cookies: cookies,
+	}
+}
 
 // Client is a Jira client.
 type CookieClient struct {
@@ -18,25 +27,78 @@ type CookieClient struct {
 }
 
 // ListStories outputs a list of stories that are not done.
-func (c *CookieClient) ListStories(projectID string) (wallie.Stories, error) {
-	var stories wallie.Stories
+func (c *CookieClient) ListStories(projectID string) (project.Backlog, error) {
+	backlog := project.Backlog{
+		Project: projectID,
+		Stories: []project.Story{},
+		BaseURL: c.Config.JiraBase + "/browse/",
+	}
 
 	ss, err := ListIssues(c.Config, projectID, c.Cookies)
 	if err != nil {
-		return nil, err
+		return backlog, err
 	}
 
 	for _, s := range ss {
-		story := wallie.Story{
+		story := project.Story{
 			Description: s.Fields.Description,
-			Feature:     s.Fields.Summary,
-			Size:        int(s.Fields.StoryPoints),
+			Title:       s.Fields.Summary,
 			ID:          s.Key,
+			Author:      s.Fields.Reporter.DisplayName,
+			Size:        points2size(s.Fields.StoryPoints),
 		}
-		stories = append(stories, story)
+		backlog.Stories = append(backlog.Stories, story)
 	}
 
-	return stories, nil
+	return backlog, nil
+}
+
+func (c *CookieClient) UpdateStory(projectID, id, title, description, size string) error {
+	sz := size2points(size)
+	if size == "" {
+		sz = math.NaN()
+	}
+	log.Printf("update story %v:%v - %v\n", projectID, id, size)
+	return UpdateIssue(c.Config, id, title, description, sz, c.Cookies)
+}
+
+func size2points(size string) float64 {
+	switch project.Size(size) {
+	case project.ExtraSmall:
+		return 1.0
+	case project.Small:
+		return 2.0
+	case project.Medium:
+		return 3.0
+	case project.Large:
+		return 5.0
+	case project.ExtraLarge:
+		return 8.0
+	case project.ExtraExtraLarge:
+		return 13.0
+	}
+
+	return 0.0
+}
+
+func points2size(p float64) project.Size {
+	switch p {
+	case 1.0:
+		return project.ExtraSmall
+	case 2.0:
+		return project.Small
+	case 3.0:
+		return project.Medium
+	case 5.0:
+		return project.Large
+	case 8.0:
+	case 10.0:
+		return project.ExtraLarge
+	case 13.0:
+	case 20.0:
+		return project.ExtraExtraLarge
+	}
+	return project.Unsized
 }
 
 var client = http.Client{}
@@ -46,8 +108,11 @@ func UpdateIssue(config wallie.Config, key, summary, description string, estimat
 		Fields: IssueFields{
 			Summary:     summary,
 			Description: description,
-			StoryPoints: estimate,
 		},
+	}
+
+	if !math.IsNaN(estimate) {
+		updateRequest.Fields.StoryPoints = estimate
 	}
 
 	b, err := json.Marshal(updateRequest)

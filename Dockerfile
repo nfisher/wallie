@@ -10,7 +10,7 @@ EXPOSE 8000
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=alpine /etc/passwd /etc/passwd
 
-ADD wallie.amd64 /wallie
+ADD bin/walliej.amd64 /wallie
 ADD tpl /tpl
 
 USER appuser

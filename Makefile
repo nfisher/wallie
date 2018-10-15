@@ -8,14 +8,17 @@ GOAMD64 := CGO_ENABLED=0 GOOS=linux go build -v -tags netgo \
 	 -installsuffix cgo
 
 .PHONY: all
-all: test
+all: test build
+
+.PHONY: build
+build: bin/walliej
 
 .PHONY: test
 test:
 	go test -v ./...
 
 .PHONY: docker
-docker: wallie.amd64
+docker: bin/walliej.amd64
 	docker build --file Dockerfile . \
 	 -t ${DOCKER_ID_USER}/wallie:${GIT_SHA} \
 	 -t ${DOCKER_ID_USER}/wallie:latest
@@ -26,12 +29,12 @@ publish: docker
 	docker push ${DOCKER_ID_USER}/wallie:latest
 
 .PHONY: run
-run: wallie
-	./wallie -listen localhost:8000 -reload
+run: all
+	./bin/walliej -listen localhost:8000 -reload
 
-wallie: $(SRC)
+bin/walliej: $(SRC)
 	$(GO) -o $@  ./cmd/walliej
 
-wallie.amd64: $(SRC)
-	$(GOAMD64) -o wallie.amd64 ./cmd/walliej
+bin/walliej.amd64: $(SRC)
+	$(GOAMD64) -o $@ ./cmd/walliej
 

@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/nfisher/wallie"
+	"github.com/nfisher/wallie/project"
 	"github.com/nfisher/wallie/reqlog"
 )
 
@@ -50,7 +51,8 @@ func Execute(version, origin string) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/favicon.ico", Favicon)
-	mux.HandleFunc("/cfd", CumulativeFlow)
+	mux.HandleFunc("/backlog", project.BacklogEstimation(New, config))
+	// mux.HandleFunc("/cfd", project.BacklogEstimation(New, config))
 	mux.HandleFunc("/estimation", EstimationHandler(config))
 	mux.HandleFunc("/sizing", SizingHandler(config))
 	mux.HandleFunc(config.LoginPath, Login(config))

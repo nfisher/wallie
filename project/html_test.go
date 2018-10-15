@@ -23,9 +23,9 @@ func Test_render_dialogue(t *testing.T) {
 
 	component := buf.String()
 
-	actual := strings.Count(component, `class="column"`)
-	if actual != 6 {
-		t.Errorf("got count(.column) = %v, want 6", actual)
+	actual := strings.Count(component, `<button`)
+	if actual != 7 {
+		t.Errorf("got count(button) = %v, want 7", actual)
 	}
 
 	actual = strings.Count(component, "<textarea")
@@ -46,7 +46,7 @@ func Test_render_backlog(t *testing.T) {
 
 	backlog := project.Backlog{Project: "Wallie"}
 	tpl := project.LoadTemplates()
-	err := tpl.ExecuteTemplate(&buf, "backlog_estimation", &backlog)
+	err := tpl.ExecuteTemplate(&buf, "story_estimate_backlog", &backlog)
 	if err != nil {
 		t.Fatal(err)
 	}
