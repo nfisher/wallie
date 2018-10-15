@@ -1,10 +1,14 @@
-{{- define "story_estimation_page" -}}
+{{- define "story_estimation_head" -}}
 <!DOCTYPE html>
 <html>
 
 <head>
     {{- template "story_head" "Backlog Estimation" -}}
 </head>
+
+{{- end -}}
+
+{{- define "story_estimation_content" -}}
 
 <body>
     {{- template "story_estimate_dialogue" . -}}

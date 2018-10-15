@@ -14,6 +14,17 @@ func BacklogEstimation(fn func(wallie.Config, []*http.Cookie) Client, config wal
 		client := fn(config, cookies)
 		projectID := req.URL.Query().Get("project")
 
+		err := tpl.ExecuteTemplate(w, "story_estimation_head", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		flusher, ok := w.(http.Flusher)
+		if ok {
+			flusher.Flush()
+		}
+
 		if req.Method == http.MethodPost {
 			err := req.ParseForm()
 			if err != nil {
@@ -39,7 +50,7 @@ func BacklogEstimation(fn func(wallie.Config, []*http.Cookie) Client, config wal
 			return
 		}
 
-		err = tpl.ExecuteTemplate(w, "story_estimation_page", &backlog)
+		err = tpl.ExecuteTemplate(w, "story_estimation_content", &backlog)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
