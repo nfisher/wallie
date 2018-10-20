@@ -1,7 +1,6 @@
 package project
 
 import (
-	"html/template"
 	"net/http"
 
 	"github.com/nfisher/wallie"
@@ -9,7 +8,7 @@ import (
 
 func BacklogEstimation(fn func(wallie.Config, []*http.Cookie) Client, config wallie.Config) func(w http.ResponseWriter, req *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request) {
-		tpl := template.Must(template.ParseGlob("tpl/project.html"))
+		tpl := LoadTemplates()
 		cookies := req.Cookies()
 		client := fn(config, cookies)
 		projectID := req.URL.Query().Get("project")

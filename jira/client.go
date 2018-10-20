@@ -92,9 +92,11 @@ func points2size(p float64) project.Size {
 	case 5.0:
 		return project.Large
 	case 8.0:
+		return project.ExtraLarge
 	case 10.0:
 		return project.ExtraLarge
 	case 13.0:
+		return project.ExtraExtraLarge
 	case 20.0:
 		return project.ExtraExtraLarge
 	}
