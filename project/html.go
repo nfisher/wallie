@@ -31,7 +31,7 @@ func LoadTemplates() *template.Template {
 		return t
 	}
 
-	tpl.templates = template.Must(template.ParseFiles("../tpl/project.html"))
+	tpl.templates = template.Must(template.ParseFiles("tpl/project.html"))
 	tpl.isLoaded = true
 	t = tpl.templates
 

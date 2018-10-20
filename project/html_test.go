@@ -3,11 +3,17 @@ package project_test
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/nfisher/wallie/project"
 )
+
+func init() {
+	// tests require dir to be changed
+	os.Chdir("..")
+}
 
 func Test_render_dialogue(t *testing.T) {
 	t.Parallel()
