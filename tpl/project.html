@@ -93,8 +93,8 @@
         {{ range $index, $el := .Stories }}
         {{- template "story_card" $el -}}
         {{ end }}
+        <p class="has-text-grey-light has-text-centered">{{ len .Stories }} stories</p>
     </div>
-    <p class="has-text-grey-light has-text-centered">{{ len .Stories }} stories</p>
 </div>
 {{- end -}}
 
