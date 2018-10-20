@@ -79,7 +79,7 @@
 {{- end -}}
 
 {{- define "footer" -}}
-<footer class="footer">
+<footer class="footer has-background-grey-light">
     <div class="content">
         <p>{{ .Count }} issues. Create a <a id="newStory">new issue</a>. </p>
     </div>
@@ -116,8 +116,8 @@
 <title>{{ . }}</title>
 <link href="https://fonts.googleapis.com/css?family=Domine|Open+Sans|Inconsolata" rel="stylesheet">
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
-<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ"
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ"
     crossorigin="anonymous">
 <style>
     body,
@@ -155,13 +155,9 @@
         min-height: 7.5em;
     }
 
-    #wall .column:first-child,
-    .footer {
-        background-color: #f5f5f5 !important;
-    }
-
     #wall .column:first-child
     {
+        background-color: #f5f5f5 !important;
         min-height: 100vh;
     }
 
