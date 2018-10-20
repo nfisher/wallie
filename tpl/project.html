@@ -81,7 +81,7 @@
 {{- define "footer" -}}
 <footer class="footer">
     <div class="content">
-        <p>{{ .Count }} issues on the board. Create a <a id="newStory">new issue</a>.</p>
+        <p>{{ .Count }} issues. Create a <a id="newStory">new issue</a>. </p>
     </div>
 </footer>
 {{- end -}}
@@ -94,6 +94,7 @@
         {{- template "story_card" $el -}}
         {{ end }}
     </div>
+    <p class="has-text-grey-light has-text-centered">{{ len .Stories }} stories</p>
 </div>
 {{- end -}}
 
