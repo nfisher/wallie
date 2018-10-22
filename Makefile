@@ -30,7 +30,7 @@ publish: docker
 
 .PHONY: run
 run: all
-	./bin/walliej -listen localhost:8000 -reload
+	./bin/walliej -listen localhost:8000 -reload -insecure
 
 bin/walliej: $(SRC)
 	$(GO) -o $@  ./cmd/walliej

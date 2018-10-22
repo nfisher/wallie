@@ -5,4 +5,5 @@ type Config struct {
 	LoginPath        string
 	SessionName      string
 	AlwaysReloadHTML bool `json:"-"`
+	IsInsecure       bool
 }

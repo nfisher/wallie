@@ -17,6 +17,7 @@ func Execute(version, origin string) error {
 	var addr string
 	var projectID string
 	var alwaysReload bool
+	var isInsecure bool
 	var port = DefaultAddress()
 	var jiraBase = os.Getenv("JIRA_BASE")
 
@@ -26,6 +27,7 @@ func Execute(version, origin string) error {
 	log.Println("version:", version)
 	log.Println("source:", origin)
 
+	flag.BoolVar(&isInsecure, "insecure", false, "local development insecure cookies")
 	flag.BoolVar(&alwaysReload, "reload", false, "always reload HTML templates")
 	flag.StringVar(&configPath, "config", "config.json", "path to the configuration file")
 	flag.StringVar(&addr, "listen", port, "listening address")
@@ -45,15 +47,21 @@ func Execute(version, origin string) error {
 	if jiraBase != "" {
 		config.JiraBase = jiraBase
 	}
+	if isInsecure {
+		config.IsInsecure = true
+		log.Println("overriding secure cookies")
+	}
 
 	config.AlwaysReloadHTML = alwaysReload
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/favicon.ico", Favicon)
-	mux.HandleFunc("/backlog", project.BacklogEstimation(New, config))
-	// mux.HandleFunc("/cfd", project.BacklogEstimation(New, config))
-	mux.HandleFunc("/estimation", EstimationHandler(config))
+
+	mux.HandleFunc("/tshirt", project.TshirtHandler(New, config))
+	mux.HandleFunc("/flow", project.FlowHandler())
+
+	mux.HandleFunc("/estimation", project.TshirtHandler(New, config))
 	mux.HandleFunc("/sizing", SizingHandler(config))
 	mux.HandleFunc(config.LoginPath, Login(config))
 

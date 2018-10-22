@@ -14,19 +14,19 @@ type templates struct {
 var tpl templates
 
 // LoadTemplates loads the html templates associated with this package.
-func LoadTemplates() *template.Template {
+func LoadTemplates(alwaysReload bool) *template.Template {
 	tpl.RLock()
 	isLoaded := tpl.isLoaded
 	t := tpl.templates
 	tpl.RUnlock()
 
-	if isLoaded {
+	if !alwaysReload && isLoaded {
 		return t
 	}
 
 	tpl.Lock()
 	defer tpl.Unlock()
-	if isLoaded {
+	if !alwaysReload && isLoaded {
 		t := tpl.templates
 		return t
 	}

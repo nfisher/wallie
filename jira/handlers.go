@@ -83,6 +83,9 @@ func Login(config wallie.Config) http.HandlerFunc {
 
 			for _, c := range resp.Cookies() {
 				c.MaxAge = 60 * 60 // 1 hour
+				if config.IsInsecure {
+					c.Secure = false
+				}
 				http.SetCookie(w, c)
 			}
 

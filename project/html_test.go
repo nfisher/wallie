@@ -21,7 +21,7 @@ func Test_render_dialogue(t *testing.T) {
 	backlog := project.Backlog{Project: "Wallie"}
 
 	var buf bytes.Buffer
-	tpl := project.LoadTemplates()
+	tpl := project.LoadTemplates(false)
 	err := tpl.ExecuteTemplate(&buf, "story_estimate_dialogue", &backlog)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func Test_render_backlog(t *testing.T) {
 	var buf bytes.Buffer
 
 	backlog := project.Backlog{Project: "Wallie"}
-	tpl := project.LoadTemplates()
+	tpl := project.LoadTemplates(false)
 	err := tpl.ExecuteTemplate(&buf, "story_estimate_backlog", &backlog)
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +68,7 @@ func Test_render_column(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	tpl := project.LoadTemplates()
+	tpl := project.LoadTemplates(false)
 	group := project.Group{
 		Name: "Extra-Extra-Large",
 		Stories: []project.Story{
@@ -102,7 +102,7 @@ func Test_render_story(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	tpl := project.LoadTemplates()
+	tpl := project.LoadTemplates(false)
 	story := project.Story{
 		Author:      "Nathan Fisher",
 		Description: "something something something blah blah blah",

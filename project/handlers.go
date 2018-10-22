@@ -6,14 +6,36 @@ import (
 	"github.com/nfisher/wallie"
 )
 
-func BacklogEstimation(fn func(wallie.Config, []*http.Cookie) Client, config wallie.Config) func(w http.ResponseWriter, req *http.Request) {
+func FlowHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		tpl := LoadTemplates()
-		cookies := req.Cookies()
-		client := fn(config, cookies)
+		tmpl := LoadTemplates(true)
+		err := tmpl.ExecuteTemplate(w, "story_flow_head", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		flusher, ok := w.(http.Flusher)
+		if ok {
+			flusher.Flush()
+		}
+
+		err = tmpl.ExecuteTemplate(w, "story_flow_content", nil)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// TshirtHandler handles estimation for individual stories with examples for each tee-shirt size where available.
+func TshirtHandler(fn func(wallie.Config, []*http.Cookie) Client, config wallie.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		tmpl := LoadTemplates(config.AlwaysReloadHTML)
+		client := fn(config, req.Cookies())
 		projectID := req.URL.Query().Get("project")
 
-		err := tpl.ExecuteTemplate(w, "story_estimation_head", nil)
+		err := tmpl.ExecuteTemplate(w, "story_estimation_head", nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -49,7 +71,7 @@ func BacklogEstimation(fn func(wallie.Config, []*http.Cookie) Client, config wal
 			return
 		}
 
-		err = tpl.ExecuteTemplate(w, "story_estimation_content", &backlog)
+		err = tmpl.ExecuteTemplate(w, "story_estimation_content", &backlog)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
