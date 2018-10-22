@@ -24,6 +24,7 @@ func FlowHandler() http.HandlerFunc {
 
 		var contents = struct {
 			Project string
+			Count   int
 		}{
 			Project: projectID,
 		}
