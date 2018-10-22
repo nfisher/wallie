@@ -9,6 +9,8 @@ import (
 func FlowHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		tmpl := LoadTemplates(true)
+		projectID := req.URL.Query().Get("project")
+
 		err := tmpl.ExecuteTemplate(w, "story_flow_head", nil)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -20,7 +22,13 @@ func FlowHandler() http.HandlerFunc {
 			flusher.Flush()
 		}
 
-		err = tmpl.ExecuteTemplate(w, "story_flow_content", nil)
+		var contents = struct {
+			Project string
+		}{
+			Project: projectID,
+		}
+
+		err = tmpl.ExecuteTemplate(w, "story_flow_content", &contents)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
