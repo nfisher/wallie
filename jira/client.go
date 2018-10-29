@@ -53,6 +53,34 @@ func (c *CookieClient) ListStories(projectID string) (project.Backlog, error) {
 	return backlog, nil
 }
 
+func (c *CookieClient) CreateStory(projectID, title, description, size string) error {
+	sz := size2points(size)
+	if size == "" {
+		sz = math.NaN()
+	}
+	log.Printf("create new story in %v project, size = %v\n", projectID, sz)
+
+	return nil
+}
+
+type CreateIssueRequest struct {
+	/*
+		{
+			"fields": {
+			   "project":
+			   {
+				  "key": "<PROJECT_KEY>"
+			   },
+			   "summary": "REST EXAMPLE",
+			   "description": "Creating an issue via REST API",
+			   "issuetype": {
+				  "name": "Bug"
+			   }
+			  }
+			}
+	*/
+}
+
 func (c *CookieClient) UpdateStory(projectID, id, title, description, size string) error {
 	sz := size2points(size)
 	if size == "" {
@@ -304,10 +332,15 @@ type Issue struct {
 }
 
 type IssueFields struct {
+	Project     Project   `json:"project,omitempty"`
 	Summary     string    `json:"summary"`
 	Description string    `json:"description"`
 	StoryPoints float64   `json:"customfield_10006,omitempty"`
 	Reporter    *Reporter `json:"reporter,omitempty"`
+}
+
+type Project struct {
+	Key string `json:"project"`
 }
 
 type Reporter struct {
